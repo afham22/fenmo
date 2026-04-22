@@ -57,7 +57,7 @@ export class ExpenseService {
   
 
   async findAll(queryDto: GetExpensesQueryDto): Promise<Transaction[]> {
-    const { category, sort } = queryDto;
+    const { category, sort, month, year } = queryDto;
     
     // Initialize the query builder
     const query = this.transactionRepository.createQueryBuilder('transaction');
@@ -67,7 +67,20 @@ export class ExpenseService {
       query.andWhere('transaction.category = :category', { category });
     }
 
-    // 2. Sorting
+    // 2. Filtering by month and year
+    if (month && year) {
+      // Filter by both month and year
+      query.andWhere('EXTRACT(MONTH FROM transaction.date) = :month', { month: parseInt(month) })
+        .andWhere('EXTRACT(YEAR FROM transaction.date) = :year', { year: parseInt(year) });
+    } else if (month) {
+      // Filter by month only (any year)
+      query.andWhere('EXTRACT(MONTH FROM transaction.date) = :month', { month: parseInt(month) });
+    } else if (year) {
+      // Filter by year only
+      query.andWhere('EXTRACT(YEAR FROM transaction.date) = :year', { year: parseInt(year) });
+    }
+
+    // 3. Sorting
     if (sort === 'date_desc') {
       query.orderBy('transaction.date', 'DESC');
     } else if (sort === 'date_asc') {
