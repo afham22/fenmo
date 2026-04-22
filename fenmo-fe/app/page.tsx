@@ -1,65 +1,198 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
+import { useState } from 'react';
+import { useExpenses } from '../hooks/useExpenses';
+import { PlusCircle, Filter, ArrowUpDown, Loader2, AlertCircle } from 'lucide-react';
 
-export default function Home() {
+export default function ExpenseTracker() {
+  const { expenses, loading, error, setFilter, setSort, total, refresh } = useExpenses();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  // Form State
+  const [form, setForm] = useState({
+    amount: '', category: 'Food', description: '', date: new Date().toISOString().split('T')[0]
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return; 
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          amount: parseFloat(form.amount),
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Submission failed');
+      
+      setForm({ ...form, amount: '', description: '' }); 
+      refresh(); 
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <PlusCircle className="text-blue-600" /> New Expense
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Amount</label>
+              <input 
+                type="number" step="0.01" required
+                className="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Category</label>
+              <select 
+                className="w-full mt-1 p-2 border rounded-lg bg-white"
+                value={form.category} onChange={e => setForm({...form, category: e.target.value})}
+              >
+                <option value="Food">Food & Dining</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Bills & Utilities">Bills & Utilities</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Travel">Travel</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Rent">Rent</option>
+                <option value="Tech">Tech & Gadgets</option>
+                <option value="Leisure">Leisure</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Date</label>
+              <input 
+                type="date" required
+                className="w-full mt-1 p-2 border rounded-lg"
+                value={form.date} onChange={e => setForm({...form, date: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Description</label>
+              <textarea 
+                className="w-full mt-1 p-2 border rounded-lg"
+                value={form.description} onChange={e => setForm({...form, description: e.target.value})}
+              />
+            </div>
+            
+            {submitError && (
+              <div className="text-red-500 text-sm flex items-center gap-1">
+                <AlertCircle size={16} /> {submitError}
+              </div>
+            )}
+
+            <button 
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50 flex justify-center items-center"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Add Expense'}
+            </button>
+          </form>
+        </section>
+
+        <section className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2 text-slate-500">
+                <Filter size={18} />
+                <select onChange={e => setFilter(e.target.value)} className="border-none bg-transparent font-medium focus:ring-0">
+                  <option value="">All Categories</option>
+                  <option value="Food">Food & Dining</option>
+                  <option value="Transportation">Transportation</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Bills & Utilities">Bills & Utilities</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Education">Education</option>
+                  <option value="Travel">Travel</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Rent">Rent</option>
+                  <option value="Tech">Tech & Gadgets</option>
+                  <option value="Leisure">Leisure</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>₹
+              <div className="flex items-center gap-2 text-slate-500 border-l pl-4">
+                <ArrowUpDown size={18} />
+                <select onChange={e => setSort(e.target.value)} className="border-none bg-transparent font-medium focus:ring-0">
+                  <option value="date_desc">Newest First</option>
+                  <option value="date_asc">Oldest First</option>
+                </select>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-slate-500 font-medium">Total Expense</p>
+              <p className="text-2xl font-bold text-blue-600">₹{total.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            {loading ? (
+              <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+                <Loader2 className="animate-spin mb-2" />
+                <p>Loading expenses...</p>
+              </div>
+            ) : error ? (
+              <div className="p-12 text-center text-red-500">
+                <p>Error: {error}</p>
+                <button onClick={refresh} className="mt-4 text-blue-600 underline">Try Again</button>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="p-4 font-semibold text-slate-600">Date</th>
+                    <th className="p-4 font-semibold text-slate-600">Category</th>
+                    <th className="p-4 font-semibold text-slate-600">Description</th>
+                    <th className="p-4 font-semibold text-slate-600 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {expenses.map((exp: any) => (
+                    <tr key={exp.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-slate-600">{new Date(exp.date).toLocaleDateString()}</td>
+                      <td className="p-4">
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                          {exp.category}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-500 italic text-sm">{exp.description || '-'}</td>
+                      <td className="p-4 text-right font-bold text-slate-800">₹{parseFloat(exp.amount).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {expenses.length === 0 && (
+                    <tr><td colSpan={4} className="p-12 text-center text-slate-400">No expenses found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
