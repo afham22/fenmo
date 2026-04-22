@@ -1,4 +1,14 @@
 # Fenmo - Personal Expense Tracker
+
+# Database Selection
+I went ahead with Postgres because
+   - Flexibility it offers such as jsonb supports and customs types. It felt like most encompassing option
+   - ACID Compliance
+Things i wanted to implemented but couldn't due to time constraints are      
+ - Pagination.
+ - Monitoring and logging 
+ - Rate limiting 
+
 ## Tech Stack
 ### Frontend
 - **Next.js 14** 
