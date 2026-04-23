@@ -99,7 +99,7 @@ export default function ExpenseTracker() {
       setValidationErrors({});
       refresh(); 
     } catch (err) {
-      setSubmitError(err.message);
+      setSubmitError('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
